@@ -1,6 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "mailflare",
+	"account_id": "eb8e8bdfa376c61ec64f96c09ec3e5db",
 	"main": "./worker.ts",
 	"compatibility_date": "2026-05-20",
 	"keep_vars": true,
@@ -64,6 +65,12 @@
 		"enabled": true,
 	},
 	"upload_source_maps": true,
+	"routes": [
+		{
+			"pattern": "mailflare.y2k.ventures",
+			"custom_domain": true,
+		},
+	],
 	"send_email": [
 		{
 			"name": "EMAIL",
@@ -75,6 +82,7 @@
 		{
 			"binding": "DB",
 			"database_name": "mailflare",
+			"database_id": "9266835a-4ec0-4005-a2aa-0bd0dba2583f",
 			"migrations_dir": "drizzle/migrations",
 		},
 	],
