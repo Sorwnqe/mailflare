@@ -5,6 +5,11 @@ on:
     # 16:00 UTC is 00:00 the following day in Asia/Shanghai.
     - cron: '0 16 * * *'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate synchronization without pushing or deploying'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -59,7 +64,7 @@ jobs:
           npm run build
 
       - name: Publish tested update to trigger Cloudflare Builds
-        if: steps.upstream.outputs.changed == 'true'
+        if: steps.upstream.outputs.changed == 'true' && inputs.dry_run != true
         env:
           DEPLOY_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
