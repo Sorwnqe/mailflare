@@ -18,16 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Check repository token
+      - name: Check repository deploy key
         env:
-          UPDATE_TOKEN: ${{ secrets.MAILFLARE_UPDATE_TOKEN }}
-        run: test -n "$UPDATE_TOKEN"
+          SYNC_SSH_KEY: ${{ secrets.MAILFLARE_SYNC_SSH_KEY }}
+        run: test -n "$SYNC_SSH_KEY"
 
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
-          token: ${{ secrets.MAILFLARE_UPDATE_TOKEN }}
+          ssh-key: ${{ secrets.MAILFLARE_SYNC_SSH_KEY }}
 
       - name: Merge upstream while retaining installation changes
         id: upstream
