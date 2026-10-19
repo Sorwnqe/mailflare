@@ -1991,5 +1991,14 @@
 	"drive.noPreview": "இந்தக் கோப்பு வகைக்கு முன்னோட்டம் இல்லை.",
 	"drive.publicNotFound": "இந்த இணைப்பு கிடைக்கவில்லை. அது முடக்கப்பட்டிருக்கலாம் அல்லது கோப்பு அகற்றப்பட்டிருக்கலாம்.",
 	"drive.sharedBy": "{name} பகிர்ந்தது",
-	"drive.save": "சேமி"
+	"drive.save": "சேமி",
+	"setup.skipDns": "Skip DNS setup",
+	"setup.skipDnsHint": "Add the domain without adding or checking DNS records. You can set them later.",
+	"setup.skipDnsOn": "DNS is not added or checked. Set the records yourself before mail can flow.",
+	"dnsSkipped.warning": "DNS isn't configured for {domains}. Mail won't arrive until the records are set.",
+	"dnsSkipped.review": "Review DNS",
+	"dnsSkipped.markDone": "I've set it up",
+	"compose.cancelSend": "Cancel",
+	"compose.sendCancelled": "Sending cancelled. Message moved to Drafts.",
+	"compose.cancelTooLate": "Too late to cancel: the message is already being sent."
 }

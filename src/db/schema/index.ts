@@ -63,6 +63,8 @@ export const domains = sqliteTable(
 		sendingRequested: integer("sending_requested", { mode: "boolean" }).notNull().default(false),
 		sendingEnabled: integer("sending_enabled", { mode: "boolean" }).notNull().default(false),
 		routingEnabled: integer("routing_enabled", { mode: "boolean" }).notNull().default(false),
+		/** The operator skipped adding/checking DNS; set until they confirm the records exist. */
+		dnsSkipped: integer("dns_skipped", { mode: "boolean" }).notNull().default(false),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.$defaultFn(() => new Date()),

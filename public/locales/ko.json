@@ -1991,5 +1991,14 @@
 	"drive.noPreview": "이 파일 형식은 미리볼 수 없습니다.",
 	"drive.publicNotFound": "이 링크를 사용할 수 없습니다. 링크가 꺼졌거나 파일이 삭제되었을 수 있습니다.",
 	"drive.sharedBy": "{name}님이 공유함",
-	"drive.save": "저장"
+	"drive.save": "저장",
+	"setup.skipDns": "Skip DNS setup",
+	"setup.skipDnsHint": "Add the domain without adding or checking DNS records. You can set them later.",
+	"setup.skipDnsOn": "DNS is not added or checked. Set the records yourself before mail can flow.",
+	"dnsSkipped.warning": "DNS isn't configured for {domains}. Mail won't arrive until the records are set.",
+	"dnsSkipped.review": "Review DNS",
+	"dnsSkipped.markDone": "I've set it up",
+	"compose.cancelSend": "Cancel",
+	"compose.sendCancelled": "Sending cancelled. Message moved to Drafts.",
+	"compose.cancelTooLate": "Too late to cancel: the message is already being sent."
 }

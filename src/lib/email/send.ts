@@ -36,9 +36,13 @@ export type SendEmailInput = {
 	attachments?: AttachmentContent[];
 	/** Future delivery time. Values at or before the current time send immediately. */
 	scheduledAt?: string | Date;
+	/** Hold the send for UNDO_SEND_SECONDS (via the scheduled queue) so the user can cancel it. */
+	undoSend?: boolean;
 	publicOrigin?: string;
 };
 
+/** How long a send started from the composer waits before it is delivered. */
+export const UNDO_SEND_SECONDS = 15;
 const MAX_RECIPIENTS = 50;
 const MAX_QUEUE_DELAY_SECONDS = 24 * 60 * 60;
 
@@ -71,7 +75,7 @@ function toRecipientList(value: string | string[] | undefined): string[] {
 export async function sendEmail(
 	env: CloudflareEnv,
 	input: SendEmailInput,
-): Promise<{ messageId: string; scheduled?: boolean }> {
+): Promise<{ messageId: string; scheduled?: boolean; undoSeconds?: number }> {
 	const db = getDb(env);
 	const sender = await getAuthorizedSenderAddress(env, input);
 	const attachments = input.attachments ?? [];
@@ -108,9 +112,11 @@ export async function sendEmail(
 
 	const messageId = newId("msg");
 	const requestedSchedule = input.scheduledAt ? new Date(input.scheduledAt) : null;
-	const scheduledAt = requestedSchedule && requestedSchedule.getTime() > Date.now()
+	const userScheduledAt = requestedSchedule && requestedSchedule.getTime() > Date.now()
 		? requestedSchedule
 		: null;
+	// An explicit schedule wins; otherwise an undoable send waits out the undo window.
+	const scheduledAt = userScheduledAt ?? (input.undoSend ? new Date(Date.now() + UNDO_SEND_SECONDS * 1000) : null);
 	const snippet = buildSnippet(input.text ?? null, input.html ?? null);
 	const toAddr = joinEmailAddressList(to);
 
@@ -173,7 +179,7 @@ export async function sendEmail(
 	};
 	if (scheduledAt) {
 		await enqueueScheduledDelivery(env, delivery, scheduledAt);
-		return { messageId, scheduled: true };
+		return userScheduledAt ? { messageId, scheduled: true } : { messageId, scheduled: true, undoSeconds: UNDO_SEND_SECONDS };
 	}
 
 	await deliverEmail(env, delivery);

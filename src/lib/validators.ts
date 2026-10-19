@@ -30,6 +30,7 @@ export const sendEmailSchema = z.object({
 	text: z.string().max(2 * 1024 * 1024).optional(),
 	mailboxId: z.string().min(1).max(200),
 	scheduledAt: z.string().datetime().optional(),
+	undoSend: z.boolean().optional(),
 	attachments: z
 		.array(
 			z.object({
@@ -52,6 +53,7 @@ export const firstRunRegisterSchema = z.object({
 	domain: z.string().min(3),
 	enableSending: z.boolean().optional(),
 	replaceMxRecords: z.boolean().optional(),
+	skipDns: z.boolean().optional(),
 	username: z.string().min(1).max(64).regex(/^[a-zA-Z0-9._%+-]+$/),
 	password: z.string().min(8),
 	resetEmail: z.string().email(),
@@ -72,6 +74,8 @@ export const addDomainSchema = z.object({
 	enableRouting: z.boolean().optional(),
 	enableSending: z.boolean().optional(),
 	replaceMxRecords: z.boolean().optional(),
+	/** Record the domain without adding or checking DNS; a warning shows until it is confirmed. */
+	skipDns: z.boolean().optional(),
 	/** Which service sends mail for the domain; derived from `enableSending` when omitted. */
 	sendingProvider: z.enum(["none", "cloudflare", "resend", "ses"]).optional(),
 	/** Which service receives mail for the domain; Cloudflare Email Routing when omitted. */

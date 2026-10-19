@@ -830,6 +830,12 @@
 	"setup.primaryDomain": "Primary domain",
 	"setup.zoneHint": "The domain must already be a Cloudflare zone on this account.",
 	"setup.enableSending": "Enable sending",
+	"setup.skipDns": "Skip DNS setup",
+	"setup.skipDnsHint": "Add the domain without adding or checking DNS records. You can set them later.",
+	"setup.skipDnsOn": "DNS is not added or checked. Set the records yourself before mail can flow.",
+	"dnsSkipped.warning": "DNS isn't configured for {domains}. Mail won't arrive until the records are set.",
+	"dnsSkipped.review": "Review DNS",
+	"dnsSkipped.markDone": "I've set it up",
 	"setup.checkingCloudflare": "Checking Cloudflare access...",
 	"setup.requiredToSend": "Required to send email.",
 	"setup.receiveOnly": "Receive-only mode.",
@@ -2030,5 +2036,8 @@
 	"drive.noPreview": "No preview available for this file type.",
 	"drive.publicNotFound": "This link is not available. It may have been turned off or the file removed.",
 	"drive.sharedBy": "Shared by {name}",
-	"drive.save": "Save"
+	"drive.save": "Save",
+	"compose.cancelSend": "Cancel",
+	"compose.sendCancelled": "Sending cancelled. Message moved to Drafts.",
+	"compose.cancelTooLate": "Too late to cancel: the message is already being sent."
 }

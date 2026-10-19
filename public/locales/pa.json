@@ -1991,5 +1991,14 @@
 	"drive.noPreview": "ਇਸ ਫ਼ਾਈਲ ਕਿਸਮ ਲਈ ਕੋਈ ਝਲਕ ਉਪਲਬਧ ਨਹੀਂ।",
 	"drive.publicNotFound": "ਇਹ ਲਿੰਕ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਇਹ ਬੰਦ ਕੀਤਾ ਗਿਆ ਹੋ ਸਕਦਾ ਹੈ ਜਾਂ ਫ਼ਾਈਲ ਹਟਾਈ ਗਈ ਹੋ ਸਕਦੀ ਹੈ।",
 	"drive.sharedBy": "{name} ਵੱਲੋਂ ਸਾਂਝਾ ਕੀਤਾ",
-	"drive.save": "ਸੰਭਾਲੋ"
+	"drive.save": "ਸੰਭਾਲੋ",
+	"setup.skipDns": "Skip DNS setup",
+	"setup.skipDnsHint": "Add the domain without adding or checking DNS records. You can set them later.",
+	"setup.skipDnsOn": "DNS is not added or checked. Set the records yourself before mail can flow.",
+	"dnsSkipped.warning": "DNS isn't configured for {domains}. Mail won't arrive until the records are set.",
+	"dnsSkipped.review": "Review DNS",
+	"dnsSkipped.markDone": "I've set it up",
+	"compose.cancelSend": "Cancel",
+	"compose.sendCancelled": "Sending cancelled. Message moved to Drafts.",
+	"compose.cancelTooLate": "Too late to cancel: the message is already being sent."
 }

@@ -1991,5 +1991,14 @@
 	"drive.sharedBy": "{name} শেয়ার করেছেন",
 	"drive.save": "সংরক্ষণ করুন",
 	"settings.account.generalTitle": "সাধারণ",
-	"settings.account.generalDescription": "আপনার অ্যাকাউন্টের ভাষা ও টাইম জোন।"
+	"settings.account.generalDescription": "আপনার অ্যাকাউন্টের ভাষা ও টাইম জোন।",
+	"setup.skipDns": "Skip DNS setup",
+	"setup.skipDnsHint": "Add the domain without adding or checking DNS records. You can set them later.",
+	"setup.skipDnsOn": "DNS is not added or checked. Set the records yourself before mail can flow.",
+	"dnsSkipped.warning": "DNS isn't configured for {domains}. Mail won't arrive until the records are set.",
+	"dnsSkipped.review": "Review DNS",
+	"dnsSkipped.markDone": "I've set it up",
+	"compose.cancelSend": "Cancel",
+	"compose.sendCancelled": "Sending cancelled. Message moved to Drafts.",
+	"compose.cancelTooLate": "Too late to cancel: the message is already being sent."
 }

@@ -27,6 +27,8 @@ interface CloudflareEnv {
 	APNS_TEAM_ID?: string;
 	/** The .p8 file contents (PKCS#8 PEM). */
 	APNS_PRIVATE_KEY?: string;
+	/** Origin of a Mailflare push relay (mailflare-relay); lets this server push without APNS_* keys. */
+	APNS_RELAY_URL?: string;
 	AGENT_RATE_LIMIT?: RateLimit;
 	/**
 	 * Backblaze B2 storage. When all four are set, B2 replaces the R2 binding for raw mail, attachments, Drive,

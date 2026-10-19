@@ -1991,5 +1991,14 @@
 	"drive.noPreview": "برای این نوع فایل پیش‌نمایشی در دسترس نیست.",
 	"drive.publicNotFound": "این پیوند در دسترس نیست. ممکن است خاموش شده یا فایل حذف شده باشد.",
 	"drive.sharedBy": "اشتراک‌گذاری از {name}",
-	"drive.save": "ذخیره"
+	"drive.save": "ذخیره",
+	"setup.skipDns": "Skip DNS setup",
+	"setup.skipDnsHint": "Add the domain without adding or checking DNS records. You can set them later.",
+	"setup.skipDnsOn": "DNS is not added or checked. Set the records yourself before mail can flow.",
+	"dnsSkipped.warning": "DNS isn't configured for {domains}. Mail won't arrive until the records are set.",
+	"dnsSkipped.review": "Review DNS",
+	"dnsSkipped.markDone": "I've set it up",
+	"compose.cancelSend": "Cancel",
+	"compose.sendCancelled": "Sending cancelled. Message moved to Drafts.",
+	"compose.cancelTooLate": "Too late to cancel: the message is already being sent."
 }
