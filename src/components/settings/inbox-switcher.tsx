@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, ChevronDown, UsersRound } from "lucide-react";
+import { Check, ChevronDown, UsersRound } from "@/components/icons";
 import { useDismissible } from "@/components/use-dismissible";
 import { useLanguage } from "@/components/language-provider";
 import { useSelectedMailbox, type MailboxOption } from "@/components/mailbox-provider";

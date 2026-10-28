@@ -3,7 +3,7 @@
 import type { FormEvent, KeyboardEvent } from "react";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Folder, Forward, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { Folder, Forward, Plus, ShieldAlert, Trash2 } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { Button } from "@/components/ui/button";

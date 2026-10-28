@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatUserDate } from "@/lib/time/utils";
-import { ChevronsUpDown, Paperclip } from "lucide-react";
+import { ChevronsUpDown, Paperclip } from "@/components/icons";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
 import { QuotedEmailToggle } from "@/components/messages/quoted-email-toggle";
 import { runSingleMessageAction } from "@/components/message-actions/utils";

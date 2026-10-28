@@ -12,7 +12,7 @@ import {
 	RemoveFormatting,
 	Strikethrough,
 	Underline,
-} from "lucide-react";
+} from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";

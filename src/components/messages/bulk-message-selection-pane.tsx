@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckSquare2 } from "lucide-react";
+import { CheckSquare2 } from "@/components/icons";
 import { useState } from "react";
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import { useLanguage } from "@/components/language-provider";

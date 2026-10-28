@@ -1,6 +1,6 @@
 "use client";
 
-import { MailPlus } from "lucide-react";
+import { MailPlus } from "@/components/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { ComposeForm } from "@/components/compose/compose-form";
 import { useCompose } from "@/components/compose/compose-context";
