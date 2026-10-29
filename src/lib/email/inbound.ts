@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { domains, mailboxAliases, mailboxes, messages, outboundJobs, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { buildSnippet, parseRawMime } from "@/lib/email/parse";
+import { mimePreflightReason } from "@/lib/email/mime-preflight";
 import { resolveInboundAddress, resolveInboxRuleDestination } from "@/lib/email/routing";
 import { dispatchWebhooks } from "@/lib/email/webhooks";
 import { getMessageContactNames, upsertContactFromAddress } from "@/lib/contacts/service";
@@ -102,7 +103,17 @@ export async function processInboundMessage(
 	}
 
 	const buffer = await raw.arrayBuffer();
-	const parsed = await parseRawMime(buffer);
+	const preflightReason = mimePreflightReason(buffer);
+	let parsed: Awaited<ReturnType<typeof parseRawMime>>;
+	try {
+		if (preflightReason) throw new Error(preflightReason);
+		parsed = await parseRawMime(buffer);
+	} catch (error) {
+		// Deterministic: a retry would repeat the same expensive parse, so drop the message.
+		console.warn(`Inbound MIME rejected for ${payload.to}`, error);
+		await env.BUCKET.delete(payload.rawR2Key);
+		return;
+	}
 	const attachmentLimitReason = inboundAttachmentLimitReason(parsed.attachments);
 	if (attachmentLimitReason) {
 		console.warn(`Inbound attachment limit reached for ${payload.to}: ${attachmentLimitReason}`);
