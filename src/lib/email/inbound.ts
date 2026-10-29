@@ -67,13 +67,18 @@ export async function processInboundMessage(
 	// do in the Worker email handler.
 	const decision = await resolveInboundAddress(db, payload.to, payload.from);
 
+	// Nothing references the raw object on these paths, so keep it from piling up in storage.
+	const dropRaw = () => env.BUCKET.delete(payload.rawR2Key).catch((error) => console.error(`Raw cleanup failed for ${payload.rawR2Key}`, error));
+
 	if (!decision) {
 		console.warn(`No routing for inbound address: ${payload.to}`);
+		await dropRaw();
 		return;
 	}
 
 	if (decision.action === "reject") {
 		console.warn(`Rejected inbound: ${payload.to}`);
+		await dropRaw();
 		return;
 	}
 
@@ -81,10 +86,14 @@ export async function processInboundMessage(
 	// destination mailbox there is nothing to store.
 	if (decision.action === "forward" && !decision.keepCopy) {
 		console.info(`Forward ${payload.to} -> ${decision.forwardTo}`);
+		await dropRaw();
 		return;
 	}
 
-	if (!decision.mailbox) return;
+	if (!decision.mailbox) {
+		await dropRaw();
+		return;
+	}
 	const [stored] = await db.select({ id: messages.id }).from(messages).where(and(
 		eq(messages.mailboxId, decision.mailbox.mailboxId),
 		eq(messages.rawR2Key, payload.rawR2Key),
