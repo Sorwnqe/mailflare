@@ -20,7 +20,7 @@ export async function upsertContactFromAddress(env: CloudflareEnv, input: Contac
 	const now = new Date();
 
 	if (existing) {
-		const nextDisplayName = getNextDisplayName(existing.displayName, existing.source, displayName);
+		const nextDisplayName = getNextDisplayName(existing.displayName, existing.source, displayName, input.source);
 		const nextSource = existing.source === "manual" || (existing.source === "outbound" && input.source === "inbound")
 			? existing.source
 			: input.source;
@@ -160,8 +160,10 @@ export async function blockContact(env: CloudflareEnv, input: BlockContactInput)
 	return { email, blocked: true };
 }
 
-function getNextDisplayName(existingName: string | null, source: string, nextName: string | null): string | null {
+function getNextDisplayName(existingName: string | null, source: string, nextName: string | null, incomingSource: string): string | null {
 	if (source === "manual") return existingName;
+	// A sender chooses its own From name, so inbound mail may name a contact but never rename one.
+	if (incomingSource === "inbound" && existingName) return existingName;
 	if (nextName) return nextName;
 	return existingName;
 }

@@ -1,6 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { getDb } from "@/db";
-import { domains, mailboxAliases, mailboxes, messages, outboundJobs, users } from "@/db/schema";
+import { messages, outboundJobs, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { buildSnippet, parseRawMime } from "@/lib/email/parse";
 import { boundParsedEmail } from "@/lib/email/inbound-limits";
@@ -40,24 +40,6 @@ export type InboundQueueMessage = {
 };
 
 /** True when the address is a mailbox or alias owned by the user, so their own mail never counts as unread. */
-async function isOwnAddress(db: ReturnType<typeof getDb>, userId: string, address: string) {
-	const at = address.lastIndexOf("@");
-	if (at < 1) return false;
-	const localPart = address.slice(0, at).toLowerCase();
-	const hostname = address.slice(at + 1).toLowerCase();
-	const [mailbox] = await db.select({ id: mailboxes.id }).from(mailboxes)
-		.innerJoin(domains, eq(mailboxes.domainId, domains.id))
-		.where(and(eq(mailboxes.userId, userId), eq(mailboxes.localPart, localPart), eq(domains.hostname, hostname)))
-		.limit(1);
-	if (mailbox) return true;
-	const [alias] = await db.select({ id: mailboxAliases.id }).from(mailboxAliases)
-		.innerJoin(mailboxes, eq(mailboxAliases.mailboxId, mailboxes.id))
-		.innerJoin(domains, eq(mailboxAliases.domainId, domains.id))
-		.where(and(eq(mailboxes.userId, userId), eq(mailboxAliases.localPart, localPart), eq(domains.hostname, hostname)))
-		.limit(1);
-	return Boolean(alias);
-}
-
 export async function processInboundMessage(
 	env: CloudflareEnv,
 	payload: InboundQueueMessage,
@@ -187,7 +169,6 @@ export async function processInboundMessage(
 		console.error(`Contact upsert failed for ${messageId}`, error);
 		return null;
 	});
-	const sentByOwner = await isOwnAddress(db, decision.mailbox.userId, getEmailAddress(fromAddr) || fromAddr).catch(() => false);
 	let threadId: string;
 	try {
 		threadId = await resolveThreadId(db, {
@@ -224,7 +205,8 @@ export async function processInboundMessage(
 			htmlBody: parsed.html,
 			rawR2Key: payload.rawR2Key,
 			status,
-			read: sentByOwner,
+			// The From header is forgeable, so mail "from yourself" is not treated as already read.
+			read: false,
 			threadId,
 			inReplyTo: parsed.inReplyTo,
 			references: parsed.references.length ? parsed.references.join(" ") : null,
@@ -270,8 +252,8 @@ export async function processInboundMessage(
 		}
 	}
 
-	if (status === "spam") {
-		console.info(`No notification for ${messageId}: filed as spam`);
+	if (status === "spam" || status === "trash") {
+		console.info(`No notification for ${messageId}: filed as ${status}`);
 	} else {
 		const notificationUserIds = await getMailboxNotificationUserIds(
 			env,
