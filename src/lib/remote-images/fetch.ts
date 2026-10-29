@@ -44,7 +44,7 @@ function invalidUrl(message = "Invalid remote image URL"): never {
 	throw new RemoteImageError(message, 400, "invalid_url");
 }
 
-function isIpLiteral(hostname: string): boolean {
+export function isIpLiteral(hostname: string): boolean {
 	return hostname.startsWith("[") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
 
@@ -58,7 +58,7 @@ function embedsNonPublicIpv4(host: string): boolean {
 	return false;
 }
 
-function isForbiddenHostname(hostname: string): boolean {
+export function isForbiddenHostname(hostname: string): boolean {
 	const host = hostname.toLowerCase().replace(/\.$/, "");
 	if (embedsNonPublicIpv4(host)) return true;
 	if (WILDCARD_DNS_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) return true;

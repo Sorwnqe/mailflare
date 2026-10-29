@@ -269,16 +269,19 @@ export async function processInboundMessage(
 			subject: parsed.subject,
 		});
 	}
-	await dispatchWebhooks(env, decision.mailbox.userId, "message.inbound", {
-		messageId,
-		from: fromAddr,
-		to: payload.to,
-		cc: parsed.ccAddr ?? undefined,
-		subject: parsed.subject,
-		threadId,
-		spamScore: spamAnalysis?.score,
-		spamVerdict: spamAnalysis?.verdict,
-	});
+	// Spam and blocked mail carry an unauthenticated From; consumers acting on it would be fooled.
+	if (status !== "spam" && status !== "trash") {
+		await dispatchWebhooks(env, decision.mailbox.userId, "message.inbound", {
+			messageId,
+			from: fromAddr,
+			to: payload.to,
+			cc: parsed.ccAddr ?? undefined,
+			subject: parsed.subject,
+			threadId,
+			spamScore: spamAnalysis?.score,
+			spamVerdict: spamAnalysis?.verdict,
+		});
+	}
 	try {
 		await scheduleAutoDraft(env, { mailboxId: decision.mailbox.mailboxId, sourceMessageId: messageId, ownerUserId: decision.mailbox.userId, sender: fromAddr, headers: payload.headers, status, folderId, spamVerdict: spamAnalysis?.verdict, spamAnalysisError });
 	} catch (error) { console.error("Auto-draft scheduling failed", error); }
