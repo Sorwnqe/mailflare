@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { domains, mailboxAliases, mailboxes, messages, outboundJobs, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { buildSnippet, parseRawMime } from "@/lib/email/parse";
+import { boundParsedEmail } from "@/lib/email/inbound-limits";
 import { mimePreflightReason } from "@/lib/email/mime-preflight";
 import { resolveInboundAddress, resolveInboxRuleDestination } from "@/lib/email/routing";
 import { dispatchWebhooks } from "@/lib/email/webhooks";
@@ -107,7 +108,7 @@ export async function processInboundMessage(
 	let parsed: Awaited<ReturnType<typeof parseRawMime>>;
 	try {
 		if (preflightReason) throw new Error(preflightReason);
-		parsed = await parseRawMime(buffer);
+		parsed = boundParsedEmail(await parseRawMime(buffer));
 	} catch (error) {
 		// Deterministic: a retry would repeat the same expensive parse, so drop the message.
 		console.warn(`Inbound MIME rejected for ${payload.to}`, error);
@@ -168,10 +169,14 @@ export async function processInboundMessage(
 		? "spam"
 		: destination.status;
 	const folderId = status === "spam" ? null : destination.folderId;
+	// A contact the database cannot hold (e.g. an over-long address) must not lose the mail.
 	const contact = await upsertContactFromAddress(env, {
 		userId: decision.mailbox.userId,
 		address: fromAddr,
 		source: "inbound",
+	}).catch((error) => {
+		console.error(`Contact upsert failed for ${messageId}`, error);
+		return null;
 	});
 	const sentByOwner = await isOwnAddress(db, decision.mailbox.userId, getEmailAddress(fromAddr) || fromAddr).catch(() => false);
 	let threadId: string;
