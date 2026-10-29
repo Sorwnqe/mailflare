@@ -48,7 +48,18 @@ jobs:
             exit 0
           fi
           # A conflict stops this job. Never replace the installation tree.
-          git merge --no-commit --no-ff upstream/main
+          if ! git merge --no-commit --no-ff upstream/main; then
+            mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+            for file in "${conflicts[@]}"; do
+              case "$file" in
+                package.json|package-lock.json|src/lib/backups/export.ts|src/lib/backups/table-groups.ts|src/lib/backups/types.d.ts) ;;
+                *) echo "::error::Manual review required for $file"; exit 1 ;;
+              esac
+            done
+            for file in "${conflicts[@]}"; do
+              git restore --source=upstream/main --staged --worktree -- "$file"
+            done
+          fi
           echo 'changed=true' >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
@@ -59,9 +70,14 @@ jobs:
       - name: Install and validate candidate
         if: steps.upstream.outputs.changed == 'true'
         run: |
+          node scripts/ensure-security-floor.mjs
+          npm install --package-lock-only --ignore-scripts
+          npm audit fix --package-lock-only --audit-level=critical
           npm ci
           npm audit --audit-level=critical
           npm run build
+          node --test tests/backup-table-list.test.mjs tests/push-devices-migration.test.mjs
+          git add package.json package-lock.json
 
       - name: Publish tested update to trigger Cloudflare Builds
         if: steps.upstream.outputs.changed == 'true' && inputs.dry_run != true

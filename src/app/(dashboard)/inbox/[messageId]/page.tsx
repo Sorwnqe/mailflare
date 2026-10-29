@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Cloud, ExternalLink } from "lucide-react";
+import { Cloud, ExternalLink } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { formatUserDate } from "@/lib/time/utils";
 import { MarkAsRead } from "@/components/mark-read";
@@ -45,12 +45,14 @@ import { useRemoteContent } from "@/components/messages/use-remote-content";
 import clsx from "clsx";
 import { useAssistantOpen } from "@/components/agent/assistant-open-state";
 import { useMessageContentScroll } from "./use-message-content-scroll";
+import { useSendViewStatus } from "@/components/messages/use-send-view-status";
 
 export default function MessageDetailPage() {
   const { t } = useLanguage();
   const params = useParams<{ messageId: string }>();
   const { selectedMailbox, mailboxes } = useSelectedMailbox();
   const messageId = params.messageId;
+  useSendViewStatus(messageId);
   const [data, setData] = useState<MessageDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewAttachment, setPreviewAttachment] =
@@ -88,7 +90,7 @@ export default function MessageDetailPage() {
         return;
       }
       setLoading(true);
-      const nextData = await fetchMessageDetail(messageId);
+      const nextData = await fetchMessageDetail(messageId).catch(() => fetchMessageDetail(messageId)).catch(() => ({ error: t("message.notFound") }));
       if (!cancelled) {
         setData(nextData);
         setLoading(false);
@@ -387,4 +389,3 @@ export default function MessageDetailPage() {
   </>
   );
 }
-
