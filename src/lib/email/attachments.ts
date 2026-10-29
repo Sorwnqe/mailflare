@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { messageAttachments, messages } from "@/db/schema";
 import { newId } from "@/lib/ids";
+import { truncateUtf8 } from "@/lib/email/inbound-limits";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import type { SessionUser } from "@/lib/auth/types";
 import type {
@@ -35,9 +36,17 @@ export function normalizeAttachmentContent(
 	return new TextEncoder().encode(content).buffer;
 }
 
-function sanitizeFilename(filename: string): string {
-	const normalized = filename.trim().replace(/[/\\\0]/g, "_");
-	return normalized || "attachment";
+const MAX_FILENAME_BYTES = 180;
+
+export function sanitizeFilename(filename: string): string {
+	// Control and bidi characters are dropped so a name cannot reorder or hide its extension.
+	// eslint-disable-next-line no-control-regex
+	const normalized = filename.replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").trim().replace(/[/\\]/g, "_");
+	if (!normalized || /^\.+$/.test(normalized)) return "attachment";
+	if (new TextEncoder().encode(normalized).byteLength <= MAX_FILENAME_BYTES) return normalized;
+	// Keep a short extension so the file type survives truncation.
+	const extension = normalized.match(/\.[A-Za-z0-9]{1,10}$/)?.[0] ?? "";
+	return `${truncateUtf8(normalized.slice(0, normalized.length - extension.length), MAX_FILENAME_BYTES - extension.length)}${extension}`;
 }
 
 export function validateAttachments(attachments: AttachmentContent[]): void {
