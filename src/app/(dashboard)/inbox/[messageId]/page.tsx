@@ -22,6 +22,8 @@ import { ScheduledSendBanner } from "@/components/messages/scheduled-send-banner
 import { formatScheduledSendTime } from "@/components/messages/scheduled-send-utils";
 import { QuotedEmailToggle } from "@/components/messages/quoted-email-toggle";
 import { ThreadMessageActions } from "@/components/messages/thread-message-actions";
+import { MessageDetailsPanel } from "@/components/messages/message-details-panel";
+import { SenderCheckNotice } from "@/components/messages/sender-check-notice";
 import { useMessageThread } from "@/components/messages/use-message-thread";
 import { useLatestMessagesFirst } from "@/components/messages/use-latest-messages-first";
 import { useMessageListVisibility } from "@/components/messages/message-list-visibility";
@@ -264,9 +266,6 @@ export default function MessageDetailPage() {
                 </p>
                 <div className="sm:hidden flex items-center gap-2 text-xs text-neutral-500">
                   <span>{messageDate(false)}</span>
-                  <button type="button" className="text-blue-600 hover:underline" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>
-                    {t("message.details")}
-                  </button>
                 </div>
                 {ccEntries.length > 0 && (
                   <p className="text-xs text-neutral-500">
@@ -288,16 +287,24 @@ export default function MessageDetailPage() {
                 ownAddress={ownAddress}
                 ownAddresses={ownAddresses}
                 starOnly={!thread.messages.some((threadMessage) => threadMessage.id === message.id) || !thread.messages.some((threadMessage) => threadMessage.id !== message.id)}
+                detailsOpen={detailsOpen}
+                onToggleDetails={() => setDetailsOpen((open) => !open)}
               />
             </div>
-            {detailsOpen && (
-              <dl className="sm:hidden w-full space-y-0.5 break-words pt-2 text-xs text-neutral-500">
-                <div><dt className="inline font-medium">{t("source.from")}:</dt> <dd className="inline">{fromName} &lt;{fromAddress}&gt;</dd></div>
-                <div><dt className="inline font-medium">{t("source.to")}:</dt> <dd className="inline">{toEntries.join(", ")}</dd></div>
-                <div><dt className="inline font-medium">{t("message.date")}:</dt> <dd className="inline">{messageDate(true)}</dd></div>
-              </dl>
-            )}
           </div>
+          <div className="mb-4 px-4 sm:px-0 sm:pl-4 sm:pr-4">
+            <SenderCheckNotice
+              message={message}
+              detailsOpen={detailsOpen}
+              onViewDetails={() => setDetailsOpen((open) => !open)}
+              announce
+            />
+          </div>
+          {detailsOpen && (
+            <div className="mb-4 px-4 sm:px-0 sm:pl-4 sm:pr-4">
+              <MessageDetailsPanel message={message} onClose={() => setDetailsOpen(false)} />
+            </div>
+          )}
           {scheduledAt && <div className="px-4 sm:px-0 sm:pl-10"><ScheduledSendBanner messageId={message.id} scheduledAt={scheduledAt} /></div>}
           <div className="prose max-w-none px-4 text-neutral-900 sm:px-0 sm:pl-16">
             {htmlBody ? (
