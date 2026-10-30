@@ -14,8 +14,8 @@ function methodSignal(method: (typeof METHODS)[number], result: string | undefin
 
 /**
  * SPF, DKIM and DMARC results. Verdicts from the receiving provider (SES) win; otherwise only an
- * Authentication-Results clause written by Cloudflare is read. Self-hosted SMTP verifies nothing, so
- * mail received there carries no authentication signal and the authentication policy never fires.
+ * Authentication-Results clause written by Cloudflare is read. Self-hosted SMTP verifies SPF, DKIM
+ * and DMARC itself (server/runtime/smtp-auth.ts) and passes the outcome in as verdicts.
  */
 export function analyzeAuthentication(headers?: Record<string, string>, verdicts?: ProviderVerdicts): SpamSignal[] {
 	const signals: SpamSignal[] = [];

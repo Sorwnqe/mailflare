@@ -7,6 +7,8 @@ export type ContactInput = {
 	userId: string;
 	address: string;
 	source: ContactSource;
+	/** False skips the Gravatar lookup, which tells a third party that this address mailed us. */
+	lookupAvatar?: boolean;
 };
 
 export type BlockContactInput = {
