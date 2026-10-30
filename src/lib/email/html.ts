@@ -332,7 +332,7 @@ export function prepareEmailHtml(source: string, options: Options = {}) {
 		ADD_TAGS: ["style", rootTag, bodyTag],
 		ADD_ATTR: ["target", "loading", "referrerpolicy", ...(options.forOutgoing || options.editor ? ["data-mailflare-quote", "data-mailflare-signature"] : []), ...(options.editor ? EDITOR_ATTRIBUTES : [])],
 		FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "button", "select", "textarea", "link", "base", "meta", "audio", "video", "source", "template"],
-		FORBID_ATTR: ["is", "slot"],
+		FORBID_ATTR: ["is", "slot", "popover", "popovertarget", "popovertargetaction", "command", "commandfor", "interestfor"],
 		ALLOW_DATA_ATTR: false,
 		RETURN_DOM_FRAGMENT: true,
 	});
