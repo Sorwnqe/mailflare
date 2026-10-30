@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
 import { getAttachmentForUser } from "@/lib/email/attachments";
-import { getInlineContentType, getMimeEssence } from "@/lib/http/content-type";
+import { getInlineContentType } from "@/lib/http/content-type";
 import type { AttachmentRouteParams } from "./types";
 import { getAttachmentContentDisposition } from "./utils";
 
@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: AttachmentRouteParams) {
 	const inline = inlineType !== null && (attachment.disposition === "inline" || previewRequested);
 	const headers = new Headers();
 	object.writeHttpMetadata(headers);
-	headers.set("Content-Type", (inline && inlineType) || getMimeEssence(attachment.contentType) || "application/octet-stream");
+	headers.set("Content-Type", (inline && inlineType) || "application/octet-stream");
 	headers.set("Content-Length", String(attachment.size));
 	headers.set("Content-Disposition", getAttachmentContentDisposition(attachment.filename, inline));
 	headers.set("X-Content-Type-Options", "nosniff");
@@ -33,7 +33,7 @@ export async function GET(request: Request, { params }: AttachmentRouteParams) {
 		"Content-Security-Policy",
 		"default-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'unsafe-inline'; sandbox",
 	);
-	headers.set("Cache-Control", "private, max-age=3600");
+	headers.set("Cache-Control", "private, max-age=300");
 
 	return new Response(object.body, { headers });
 }

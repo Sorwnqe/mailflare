@@ -135,7 +135,7 @@ export async function copyMessageAttachments(
 		const object = await env.BUCKET.get(row.r2Key);
 		if (!object) continue;
 		const id = newId("att");
-		const r2Key = `attachments/${toMessageId}/${id}/${row.filename}`;
+		const r2Key = `attachments/${toMessageId}/${id}/${sanitizeFilename(row.filename)}`;
 		await env.BUCKET.put(r2Key, await object.arrayBuffer(), {
 			httpMetadata: { contentType: row.contentType },
 			customMetadata: { filename: row.filename, messageId: toMessageId },
