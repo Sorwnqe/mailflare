@@ -23,8 +23,11 @@ export function truncateUtf8(value: string, maxBytes: number): string {
 	return decoder.decode(bytes.subarray(0, maxBytes)).replace(/�+$/u, "");
 }
 
-function capChars(value: string | null, max: number): string | null {
-	return value && value.length > max ? value.slice(0, max) : value;
+/** Truncate to `max` UTF-16 units without leaving half of a surrogate pair at the end. */
+export function capChars(value: string | null, max: number): string | null {
+	if (!value || value.length <= max) return value;
+	const last = value.charCodeAt(max - 1);
+	return value.slice(0, last >= 0xd800 && last <= 0xdbff ? max - 1 : max);
 }
 
 function boundedId(value: string | null): string | null {
