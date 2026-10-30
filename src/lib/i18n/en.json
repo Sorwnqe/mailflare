@@ -1984,6 +1984,8 @@
 	"agent.review.subject": "Subject",
 	"agent.review.sendAt": "Send at",
 	"agent.review.attachments": "Attachments: {list}",
+	"agent.review.aiWritten": "This message was written by the AI assistant from email content that anyone could have written. Read it before sending.",
+	"agent.review.unfamiliarRecipients": "You have not written to or saved: {list}. Check that you intend to send this to them.",
 	"agent.review.deliveryNeedsReview": "Delivery needs review",
 	"agent.review.couldNotSend": "Could not send",
 	"agent.review.scheduling": "Scheduling…",
