@@ -8,6 +8,7 @@ import {
 } from "./src/lib/email/inbound";
 import { processOutboundQueue, type OutboundQueueMessage } from "./src/lib/email/send";
 import { isImportJobMessage, isInboundQueueMessage, isWebhookRetryMessage } from "./worker-utils";
+import { sweepOrphanedRawMail } from "./src/lib/email/raw-sweeper";
 import { processImportJob, sweepImportJobs } from "./src/lib/import/jobs";
 import { processWebhookRetry, type WebhookRetryMessage } from "./src/lib/email/webhooks";
 import { resolveIncomingMail, forwardMessage } from "./src/lib/email/incoming";
@@ -152,5 +153,6 @@ export default {
 		// Drive trash is emptied once a day, with the 02:00 UTC cron; the 5-minute cron is for queue-like upkeep.
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runDriveTrashRetention(env, new Date(controller.scheduledTime)));
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runJmapChangeRetention(env, new Date(controller.scheduledTime)));
+		if (controller.cron === "0 2 * * *") ctx.waitUntil(sweepOrphanedRawMail(env, new Date(controller.scheduledTime)).catch((error) => console.error("Raw mail sweep failed", error)));
 	},
 } satisfies ExportedHandler<CloudflareEnv>;
