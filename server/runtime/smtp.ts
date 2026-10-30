@@ -4,6 +4,10 @@ import type { SMTPServerSession } from "smtp-server";
 import { intakeIncomingMail } from "@/lib/email/intake";
 import { inboundAttachmentLimitReasonFromRaw } from "@/lib/email/inbound-attachments";
 import { isPublicIpv4 } from "@/lib/spam/domain-utils";
+import { getDb } from "@/db";
+import { domains } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { verifySmtpAuthentication } from "./smtp-auth";
 import type { Mailer } from "./mailer";
 
 const MAX_CLIENTS = 100;
@@ -57,7 +61,15 @@ export function startSmtpListener(
 				callback(Object.assign(new Error("Too many recipients"), { responseCode: 452 }));
 				return;
 			}
-			callback();
+			// Refuse unknown domains before DATA so nothing is buffered for mail we would drop anyway.
+			const hostname = address.address.slice(address.address.lastIndexOf("@") + 1).toLowerCase();
+			getDb(env).select({ id: domains.id }).from(domains).where(eq(domains.hostname, hostname)).limit(1).then(
+				([domain]) => callback(domain ? undefined : Object.assign(new Error("Relay access denied"), { responseCode: 550 })),
+				(error) => {
+					console.error("SMTP recipient lookup failed", error);
+					callback(Object.assign(new Error("Temporary failure, try again later"), { responseCode: 451 }));
+				},
+			);
 		},
 		name: options.hostname,
 		authOptional: true,
@@ -98,11 +110,17 @@ export function startSmtpListener(
 				// No SPF/DKIM/DMARC verification happens here, so anything the sender wrote is untrusted.
 				for (const name of UNTRUSTED_HEADERS) delete headers[name];
 				const senderIp = isPublicIpv4(session.remoteAddress) ? session.remoteAddress : undefined;
+				const verdicts = await verifySmtpAuthentication(raw, {
+					ip: session.remoteAddress,
+					helo: session.hostNameAppearsAs,
+					sender: from,
+					mta: options.hostname,
+				});
 				let rejectReason: string | null = null;
 				for (const recipient of session.envelope.rcptTo) {
 					const result = await intakeIncomingMail(
 						env,
-						{ from, to: recipient.address, raw: toArrayBuffer(raw), headers, senderIp },
+						{ from, to: recipient.address, raw: toArrayBuffer(raw), headers, senderIp, verdicts },
 						{
 							reject: (reason) => {
 								rejectReason = reason;

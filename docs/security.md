@@ -16,12 +16,14 @@ or its mailbox is disabled; they also expire on their own.
   header Cloudflare writes (authserv-id `mx.cloudflare.net`). A failure in any such clause
   wins over a pass.
 * SES and Resend receiving: the provider's own verdicts are used.
-* Self-hosted SMTP: the listener verifies nothing, so no authentication signal exists and
-  the DMARC/SPF/DKIM policy does not apply. Put a verifying filter in front of it or receive
-  through a provider.
+* Self-hosted SMTP: the listener verifies SPF, DKIM and DMARC itself (with `mailauth`,
+  using the connecting IP and the envelope sender) and feeds the results to the same
+  policy. If DNS cannot answer within 10 seconds the mail carries no authentication
+  signal and is delivered as before.
 
 Sender-written `Authentication-Results`, `Received-SPF` and `Received` headers are never
-trusted on the SMTP path.
+trusted on the SMTP path. The listener also refuses recipients on domains Mailflare does not
+manage before accepting DATA.
 
 ## Webhooks
 
