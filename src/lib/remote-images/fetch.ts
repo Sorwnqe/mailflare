@@ -1,3 +1,5 @@
+import { isPublicIpv4 } from "@/lib/spam/domain-utils";
+
 export const REMOTE_IMAGE_MAX_URL_LENGTH = 4096;
 export const REMOTE_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 export const REMOTE_IMAGE_MAX_REDIRECTS = 3;
@@ -42,12 +44,24 @@ function invalidUrl(message = "Invalid remote image URL"): never {
 	throw new RemoteImageError(message, 400, "invalid_url");
 }
 
-function isIpLiteral(hostname: string): boolean {
+export function isIpLiteral(hostname: string): boolean {
 	return hostname.startsWith("[") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
 
-function isForbiddenHostname(hostname: string): boolean {
+// Wildcard DNS services that resolve an embedded address, e.g. 127.0.0.1.nip.io.
+const WILDCARD_DNS_SUFFIXES = ["nip.io", "sslip.io", "xip.io", "traefik.me", "localtest.me", "lvh.me", "localhost.run"];
+
+function embedsNonPublicIpv4(host: string): boolean {
+	for (const match of host.matchAll(/(?<![\d])(\d{1,3})[.-](\d{1,3})[.-](\d{1,3})[.-](\d{1,3})(?![\d])/g)) {
+		if (!isPublicIpv4(`${match[1]}.${match[2]}.${match[3]}.${match[4]}`)) return true;
+	}
+	return false;
+}
+
+export function isForbiddenHostname(hostname: string): boolean {
 	const host = hostname.toLowerCase().replace(/\.$/, "");
+	if (embedsNonPublicIpv4(host)) return true;
+	if (WILDCARD_DNS_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`))) return true;
 	return host === "localhost"
 		|| host === "local"
 		|| host === "internal"
