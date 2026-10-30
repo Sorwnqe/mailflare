@@ -3,8 +3,7 @@ import {
 	MAX_ATTACHMENT_SIZE,
 	MAX_TOTAL_ATTACHMENT_SIZE,
 } from "@/lib/email/attachments";
-import { mimePreflightReason } from "@/lib/email/mime-preflight";
-import { parseRawMime } from "@/lib/email/parse";
+import { MimeLimitError, parseRawMime } from "@/lib/email/parse";
 import type { AttachmentContent } from "@/lib/email/attachment-types";
 
 export function inboundAttachmentLimitReason(attachments: AttachmentContent[]): string | null {
@@ -26,12 +25,11 @@ export function inboundAttachmentLimitReason(attachments: AttachmentContent[]): 
 }
 
 export async function inboundAttachmentLimitReasonFromRaw(raw: ArrayBuffer): Promise<string | null> {
-	const preflight = mimePreflightReason(raw);
-	if (preflight) return preflight;
 	try {
 		const parsed = await parseRawMime(raw);
 		return inboundAttachmentLimitReason(parsed.attachments);
 	} catch (error) {
+		if (error instanceof MimeLimitError) return error.message;
 		console.warn("Inbound MIME parse failed", error);
 		return "Message rejected: the message could not be parsed.";
 	}
