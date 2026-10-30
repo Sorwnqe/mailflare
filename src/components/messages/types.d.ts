@@ -42,7 +42,6 @@ export type MessageFolderPageProps = {
 	config: MessageFolderConfig;
 	compact?: boolean;
 	selectedMessageId?: string;
-	selection?: MessageSelectionControl;
 };
 
 export type MessageSplitLayoutProps = {
@@ -71,12 +70,16 @@ export type BulkMessageToolbarProps = {
 
 export type SelectedMessage = Pick<Message, "id" | "read">;
 
-export type MessageSelectionControl = {
+export type MessageListStateControl = {
 	selectedMessages: SelectedMessage[];
 	setSelectedMessages: Dispatch<SetStateAction<SelectedMessage[]>>;
+	offset: number;
+	setOffset: Dispatch<SetStateAction<number>>;
+	unreadOnly: boolean;
+	setUnreadOnly: Dispatch<SetStateAction<boolean>>;
 };
 
-export type BulkMessageSelectionPaneProps = {
+export type BulkMessageActionBarProps = {
 	folder?: MessageFolder;
 	selectedMessages: SelectedMessage[];
 	onClearSelection: () => void;

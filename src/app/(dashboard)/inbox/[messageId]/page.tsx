@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Cloud, ExternalLink } from "@/components/icons";
 import { useLanguage } from "@/components/language-provider";
 import { formatUserDate } from "@/lib/time/utils";
-import { MarkAsRead } from "@/components/mark-read";
+import { markMessageRead } from "@/components/mark-read";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { ContactDetailsTrigger } from "@/components/contacts/contact-details";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
@@ -22,6 +22,8 @@ import { ScheduledSendBanner } from "@/components/messages/scheduled-send-banner
 import { formatScheduledSendTime } from "@/components/messages/scheduled-send-utils";
 import { QuotedEmailToggle } from "@/components/messages/quoted-email-toggle";
 import { ThreadMessageActions } from "@/components/messages/thread-message-actions";
+import { MessageDetailsPanel } from "@/components/messages/message-details-panel";
+import { SenderCheckNotice } from "@/components/messages/sender-check-notice";
 import { useMessageThread } from "@/components/messages/use-message-thread";
 import { useLatestMessagesFirst } from "@/components/messages/use-latest-messages-first";
 import { useMessageListVisibility } from "@/components/messages/message-list-visibility";
@@ -80,6 +82,7 @@ export default function MessageDetailPage() {
       if (cachedData?.message && cachedData.body) {
         setData(cachedData);
         setLoading(false);
+        if (!cachedData.message.read) void markMessageRead(cachedData.message.id);
         if (cachedData.attachments !== undefined) return;
         try {
           const metadata = await fetchMessageMetadata(messageId);
@@ -94,6 +97,7 @@ export default function MessageDetailPage() {
       if (!cancelled) {
         setData(nextData);
         setLoading(false);
+        if ("message" in nextData && nextData.message && !nextData.message.read) void markMessageRead(nextData.message.id);
       }
     }
 
@@ -106,6 +110,22 @@ export default function MessageDetailPage() {
   useEffect(() => {
     setThreadExpanded(false);
     setDetailsOpen(false);
+  }, [messageId]);
+
+  // A bulk read/unread action can include the message that is already open.
+  // Keep the mounted reader in sync with the cache instead of remounting it.
+  useEffect(() => {
+    function syncCachedReadState() {
+      const cached = getCachedMessageDetailForDisplay(messageId);
+      if (!cached?.message) return;
+      const cachedRead = cached.message.read;
+      setData((current) => {
+        if (!current?.message || current.message.read === cachedRead) return current;
+        return { ...current, message: { ...current.message, read: cachedRead } };
+      });
+    }
+    window.addEventListener("mailflare:messages-changed", syncCachedReadState);
+    return () => window.removeEventListener("mailflare:messages-changed", syncCachedReadState);
   }, [messageId]);
 
   if (loading) {
@@ -197,8 +217,6 @@ export default function MessageDetailPage() {
     </div>
 
     <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto overscroll-contain scrollbar-gutter-stable flex-1 min-h-0">
-      {!message.read && <MarkAsRead messageId={message.id} />}
-
       <h1 className={clsx(!isAnyPanelVisible ? "sm:pl-16" : "sm:pl-10", "px-4 pb-2 pt-2 text-2xl text-neutral-900 sm:pr-6")} title={message.subject ?? t("list.noSubject")}>
         {message.subject ?? t("list.noSubject")}
       </h1>
@@ -264,9 +282,6 @@ export default function MessageDetailPage() {
                 </p>
                 <div className="sm:hidden flex items-center gap-2 text-xs text-neutral-500">
                   <span>{messageDate(false)}</span>
-                  <button type="button" className="text-blue-600 hover:underline" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((open) => !open)}>
-                    {t("message.details")}
-                  </button>
                 </div>
                 {ccEntries.length > 0 && (
                   <p className="text-xs text-neutral-500">
@@ -288,16 +303,24 @@ export default function MessageDetailPage() {
                 ownAddress={ownAddress}
                 ownAddresses={ownAddresses}
                 starOnly={!thread.messages.some((threadMessage) => threadMessage.id === message.id) || !thread.messages.some((threadMessage) => threadMessage.id !== message.id)}
+                detailsOpen={detailsOpen}
+                onToggleDetails={() => setDetailsOpen((open) => !open)}
               />
             </div>
-            {detailsOpen && (
-              <dl className="sm:hidden w-full space-y-0.5 break-words pt-2 text-xs text-neutral-500">
-                <div><dt className="inline font-medium">{t("source.from")}:</dt> <dd className="inline">{fromName} &lt;{fromAddress}&gt;</dd></div>
-                <div><dt className="inline font-medium">{t("source.to")}:</dt> <dd className="inline">{toEntries.join(", ")}</dd></div>
-                <div><dt className="inline font-medium">{t("message.date")}:</dt> <dd className="inline">{messageDate(true)}</dd></div>
-              </dl>
-            )}
           </div>
+          <div className="mb-4 px-4 sm:px-0 sm:pl-4 sm:pr-4">
+            <SenderCheckNotice
+              message={message}
+              detailsOpen={detailsOpen}
+              onViewDetails={() => setDetailsOpen((open) => !open)}
+              announce
+            />
+          </div>
+          {detailsOpen && (
+            <div className="mb-4 px-4 sm:px-0 sm:pl-4 sm:pr-4">
+              <MessageDetailsPanel message={message} onClose={() => setDetailsOpen(false)} />
+            </div>
+          )}
           {scheduledAt && <div className="px-4 sm:px-0 sm:pl-10"><ScheduledSendBanner messageId={message.id} scheduledAt={scheduledAt} /></div>}
           <div className="prose max-w-none px-4 text-neutral-900 sm:px-0 sm:pl-16">
             {htmlBody ? (
