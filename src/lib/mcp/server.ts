@@ -29,7 +29,7 @@ export function createMailflareMcpHandler(env: CloudflareEnv, principal: McpPrin
 		});
 		if (principal.scopes.some((scope) => scope.startsWith("mcp:"))) {
 		for (const name of CALENDAR_TOOL_NAMES) {
-			server.registerTool(name, { description: calendarToolDescriptions[name], inputSchema: calendarToolSchemas[name] }, async (args) => {
+			server.registerTool(name, { description: calendarToolDescriptions[name], inputSchema: calendarToolSchemas[name], annotations: { readOnlyHint: calendarToolScope(name) === "mcp:calendar-read", destructiveHint: name === "update_events" || name === "delete_events", openWorldHint: false } }, async (args) => {
 				if (!principal.scopes.includes(calendarToolScope(name))) return output({ error: "Permission denied" }, true);
 				try { return output(await runCalendarTool({ env, user: principal.user }, name, args)); }
 				catch (error) { return output({ error: error instanceof Error ? error.message : "Calendar tool failed" }, true); }
