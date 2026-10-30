@@ -17,6 +17,7 @@ import { inboundAttachmentLimitReasonFromRaw } from "./src/lib/email/inbound-att
 import { hasValidSessionMutationOrigin } from "./src/lib/auth/origin";
 import {
 	getAccountForwardingDestination,
+	isForwardedMarkerValid,
 	MAILFLARE_FORWARDED_HEADER,
 } from "./src/lib/email/account-forwarding";
 import { runScheduledDatabaseBackup } from "./src/lib/backups/runner";
@@ -65,9 +66,10 @@ export default {
 			}
 			// Domain routing rules are resolved here rather than in the queue because reject and
 			// forward can only be actioned on the live ForwardableEmailMessage.
+			const alreadyForwarded = await isForwardedMarkerValid(env, message.headers.get(MAILFLARE_FORWARDED_HEADER));
 			const decision = await resolveIncomingMail(env, message.from, message.to, {
 				subject: message.headers.get("subject"),
-				alreadyForwarded: message.headers.get(MAILFLARE_FORWARDED_HEADER) === "1",
+				alreadyForwarded,
 			});
 
 			if (decision?.action === "reject") {
@@ -82,16 +84,16 @@ export default {
 			}
 
 			if (decision?.action === "forward" && decision.forwardTo) {
-				const forwarded = await forwardMessage(message, decision.forwardTo);
+				const forwarded = await forwardMessage(env, message, decision.forwardTo);
 				// A forward rule drops the message unless it was explicitly asked to keep a copy.
 				// If the forward itself failed we still store it, so mail is never silently lost.
 				if (forwarded && !decision.keepCopy) return;
 			}
 
-			if (message.headers.get(MAILFLARE_FORWARDED_HEADER) !== "1") {
+			if (!alreadyForwarded) {
 				const forwardingDestination = await getAccountForwardingDestination(env, message.to);
 				if (forwardingDestination) {
-					await forwardMessage(message, forwardingDestination);
+					await forwardMessage(env, message, forwardingDestination);
 				}
 			}
 			const rawR2Key = await storeRawToR2(env, message.from, message.to, raw);
