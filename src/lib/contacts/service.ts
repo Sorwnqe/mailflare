@@ -45,7 +45,7 @@ export async function upsertContactFromAddress(env: CloudflareEnv, input: Contac
 		source: input.source,
 		lastSeenAt: now,
 	}).onConflictDoNothing(); // Two messages from a new sender can be processed at once.
-	const avatarKey = await importGravatarAvatar(env, input.userId, email);
+	const avatarKey = input.lookupAvatar === false ? null : await importGravatarAvatar(env, input.userId, email);
 	if (avatarKey) {
 		await db.update(contacts).set({ avatarKey }).where(eq(contacts.id, id));
 	}

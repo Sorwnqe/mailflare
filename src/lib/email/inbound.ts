@@ -162,6 +162,8 @@ export async function processInboundMessage(
 		userId: decision.mailbox.userId,
 		address: fromAddr,
 		source: "inbound",
+		// Spam senders are strangers at best; do not announce them to Gravatar.
+		lookupAvatar: status !== "spam" && status !== "trash",
 	}).catch((error) => {
 		console.error(`Contact upsert failed for ${messageId}`, error);
 		return null;
