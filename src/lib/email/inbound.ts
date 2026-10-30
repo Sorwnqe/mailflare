@@ -173,6 +173,7 @@ export async function processInboundMessage(
 			messageId: parsed.messageId,
 			inReplyTo: parsed.inReplyTo,
 			references: parsed.references,
+			senderAddress: getEmailAddress(fromAddr) || null,
 		});
 	} catch (error) {
 		console.error("Inbound thread lookup failed", {
