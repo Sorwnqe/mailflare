@@ -319,6 +319,7 @@ export function prepareEmailHtml(source: string, options: Options = {}) {
 				element.setAttribute("rel", "noopener noreferrer");
 			}
 		}
+		if (element.tagName === "AREA") element.setAttribute("referrerpolicy", "no-referrer");
 		if (element.tagName === "IMG") {
 			element.setAttribute("referrerpolicy", "no-referrer");
 			element.setAttribute("loading", "lazy");
