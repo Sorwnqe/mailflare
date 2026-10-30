@@ -28,20 +28,25 @@ export function startSmtpListener(
 	// STARTTLS is only offered with a real certificate; smtp-server's built-in
 	// one has a public private key, and advertising it would mislead senders.
 	const connectionsByIp = new Map<string, number>();
+	// Only sessions that were admitted are counted, so rejected ones cannot decrement on close.
+	const admittedSessions = new Set<string>();
 	const server = new SMTPServer({
 		maxClients: MAX_CLIENTS,
 		socketTimeout: SOCKET_TIMEOUT_MS,
 		onConnect(session, callback) {
 			const ip = session.remoteAddress;
 			const count = (connectionsByIp.get(ip) ?? 0) + 1;
-			if (count > MAX_CONNECTIONS_PER_IP) {
-				callback(Object.assign(new Error("Too many connections from your address"), { responseCode: 421 }));
+			// maxClients in smtp-server admits one connection past the limit, so enforce it here too.
+			if (count > MAX_CONNECTIONS_PER_IP || admittedSessions.size >= MAX_CLIENTS) {
+				callback(Object.assign(new Error("Too many connections"), { responseCode: 421 }));
 				return;
 			}
+			admittedSessions.add(session.id);
 			connectionsByIp.set(ip, count);
 			callback();
 		},
 		onClose(session) {
+			if (!admittedSessions.delete(session.id)) return;
 			const ip = session.remoteAddress;
 			const count = (connectionsByIp.get(ip) ?? 1) - 1;
 			if (count <= 0) connectionsByIp.delete(ip);
