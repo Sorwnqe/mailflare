@@ -1,4 +1,5 @@
 "use client";
+import { confirmDestructive } from "@/components/ui/confirm-dialog";
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
@@ -46,19 +47,22 @@ export function ConversationNotes({ className }: ConversationNotesProps) {
 	const last = notes.notes.at(-1);
 	const visible = open || !!last;
 	const rowClass = "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none";
+
+	if (!visible) return null;
+
 	return (
 		<div className="w-full pb-3">
 			<div inert={!visible} className={rowClass} style={{ gridTemplateRows: visible ? "1fr" : "0fr" }}>
 				<div className="min-h-0 overflow-hidden">
 					<div className={className}>
-						<section ref={sectionRef} tabIndex={-1} aria-label={t("note.title")} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 outline-none">
+						<section ref={sectionRef} tabIndex={-1} aria-label={t("note.title")} className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50 outline-none">
 							<button
 								ref={headerRef}
 								type="button"
 								onClick={() => notes.setOpen(!open)}
 								aria-expanded={open}
 								aria-label={open ? t("note.collapse") : t("note.count", { count: notes.notes.length })}
-								className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-amber-900/80 transition-colors hover:bg-amber-100/70 active:bg-amber-100"
+								className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-amber-900/80 transition-colors hover:bg-amber-100/70 active:bg-amber-100"
 							>
 								<Note className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
 								<span className="shrink-0 font-medium text-amber-950">
@@ -146,7 +150,7 @@ function NoteItem({ note }: { note: ConversationNote }) {
 	}
 
 	async function remove() {
-		if (!window.confirm(t("note.deleteConfirm"))) return;
+		if (!await confirmDestructive(t("note.deleteConfirm"))) return;
 		setPending(true);
 		setError(null);
 		try {

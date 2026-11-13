@@ -1,6 +1,7 @@
 "use client";
 
 import { createElement, Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { confirmDestructive } from "@/components/ui/confirm-dialog";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ArchiveRestore, Ban, BellOff, Clock, FileCode2, Forward, Mail, MailOpen, MoreVertical, Note, Reply, ReplyAll, ShieldAlert, ShieldCheck, Trash2 } from "@/components/icons";
@@ -8,6 +9,7 @@ import { useLanguage } from "@/components/language-provider";
 import { useCompose } from "@/components/compose/compose-context";
 import { MessageSourceDialog } from "@/components/messages/message-source-dialog";
 import { useMessageListVisibility } from "@/components/messages/message-list-visibility";
+import { useAutoAdvance } from "@/components/messages/message-detail-navigation";
 import { useConversationNotes } from "@/components/messages/conversation-notes-context";
 import { MessageSnoozeDialog } from "./message-snooze-dialog";
 import { requestUnsubscribe } from "@/components/messages/unsubscribe-button-utils";
@@ -57,6 +59,7 @@ export function MessageActions({
 	const { openDraftComposer, showNotice } = useCompose();
 	const { backHref: listHref } = useMessageListVisibility();
 	const { shortcutsEnabled } = useShortcuts();
+	const autoAdvance = useAutoAdvance(messageId);
 	const notes = useConversationNotes();
 	const [pendingAction, setPendingAction] = useState<
 		BulkMessageAction | "unsubscribe" | ReplyMode | "forward" | "block" | null
@@ -73,31 +76,31 @@ export function MessageActions({
 		try {
 			await runSingleMessageAction(messageId, action);
 			const redirect = getMessageActionRedirect(action, listHref);
-			if (redirect) router.push(redirect);
+			if (redirect) router.push(autoAdvance() ?? redirect);
 			router.refresh();
 		} catch {
 			setError(t("actions.error.update"));
 		} finally {
 			setPendingAction(null);
 		}
-	}, [messageId, listHref, router, t]);
+	}, [messageId, listHref, router, t, autoAdvance]);
 
 	// In Trash and Spam the delete button removes the message for good instead of
 	// being a no-op, after the user confirms.
 	const canDeleteForever = supportsPermanentDelete(status);
 	const deleteForever = useCallback(async () => {
-		if (!window.confirm(getPermanentDeleteConfirmText(1, t))) return;
+		if (!await confirmDestructive(getPermanentDeleteConfirmText(1, t))) return;
 		setPendingAction("delete");
 		setError(null);
 		try {
 			await runSingleMessageAction(messageId, "delete");
-			router.push(getMessageBackHref(direction, status));
+			router.push(autoAdvance() ?? getMessageBackHref(direction, status));
 			router.refresh();
 		} catch (deleteError) {
 			setError(deleteError instanceof PartialDeleteError ? t("actions.error.deleteSkipped") : t("actions.error.delete"));
 			setPendingAction(null);
 		}
-	}, [messageId, direction, status, router, t]);
+	}, [messageId, direction, status, router, t, autoAdvance]);
 	const onTrashClick = () => (canDeleteForever ? void deleteForever() : void runAction("trash"));
 	const trashLabel = canDeleteForever ? t("common.deleteForever") : t("actions.moveToTrash");
 
@@ -211,7 +214,7 @@ export function MessageActions({
 			return;
 		}
 
-		if (!confirmTrashWithoutUnsubscribe()) return;
+		if (!await confirmTrashWithoutUnsubscribe()) return;
 		setPendingAction("unsubscribe");
 		if (!mailboxId) {
 			setError(t("actions.error.trashRule"));
@@ -258,7 +261,7 @@ export function MessageActions({
 		try {
 			await blockMessageContact({ mailboxId, senderAddress });
 			await runSingleMessageAction(messageId, "trash");
-			router.push(listHref);
+			router.push(autoAdvance() ?? listHref);
 			router.refresh();
 		} catch (blockError) {
 			setError(blockError instanceof Error ? blockError.message : t("message.error.block"));
@@ -273,7 +276,7 @@ export function MessageActions({
 		try {
 			const preview = await requestUnsubscribe(messageId, { action: "unsubscribe_and_trash", previewOnly: true });
 			const count = "preview" in preview ? preview.preview.count : 0;
-			if (!window.confirm(t("actions.unsubscribeDeleteConfirm", { count }))) return;
+			if (!await confirmDestructive(t("actions.unsubscribeDeleteConfirm", { count }))) return;
 			const result = await requestUnsubscribe(messageId, { action: "unsubscribe_and_trash" });
 			if (result.method === "link") openUnsubscribeUrl(result.url);
 			showNotice(t("actions.unsubscribeTrashDone", { count: result.trashedCount ?? 0 }));
@@ -307,6 +310,24 @@ export function MessageActions({
 			group: "primary",
 		});
 	}
+	if (direction === "inbound") {
+		inlineActions.push(status === "spam"
+			? {
+				id: "notSpam",
+				label: t("common.notSpam"),
+				icon: <ShieldCheck size={iconSize} />,
+				onSelect: () => void runAction("inbox"),
+				group: "primary",
+			}
+			: {
+				id: "spam",
+				label: t("common.reportSpam"),
+				hint: t("actions.reportSpamHint"),
+				icon: <ShieldAlert size={iconSize} />,
+				onSelect: () => void runAction("spam"),
+				group: "primary",
+			});
+	}
 	inlineActions.push({
 		id: canDeleteForever ? "deleteForever" : "trash",
 		label: trashLabel,
@@ -315,13 +336,6 @@ export function MessageActions({
 		onSelect: onTrashClick,
 		group: "primary",
 		destructive: canDeleteForever,
-	});
-	inlineActions.push({
-		id: markAction,
-		label: read ? t("common.markUnread") : t("common.markRead"),
-		icon: read ? <Mail size={iconSize} /> : <MailOpen size={iconSize} />,
-		onSelect: () => void runAction(markAction),
-		group: "primary",
 	});
 	if (notes) {
 		const noteCount = notes.notes.length;
@@ -350,24 +364,6 @@ export function MessageActions({
 		onSelect: () => void handleReply("reply"),
 		group: "secondary",
 	});
-	if (direction === "inbound") {
-		inlineActions.push(status === "spam"
-			? {
-				id: "notSpam",
-				label: t("common.notSpam"),
-				icon: <ShieldCheck size={iconSize} />,
-				onSelect: () => void runAction("inbox"),
-				group: "secondary",
-			}
-			: {
-				id: "spam",
-				label: t("common.reportSpam"),
-				hint: t("actions.reportSpamHint"),
-				icon: <ShieldAlert size={iconSize} />,
-				onSelect: () => void runAction("spam"),
-				group: "secondary",
-			});
-	}
 	if (canReplyAll) {
 		inlineActions.push({
 			id: "replyAll",
@@ -409,7 +405,7 @@ export function MessageActions({
 	}, [actionKey, actionGroups]);
 
 	return (
-		<div className="flex min-w-0 flex-1 items-center gap-2 text-neutral-600">
+		<div className="ml-4 flex min-w-0 flex-1 items-center gap-2 text-neutral-600">
 			{error && <span role="alert" className="text-xs text-red-600">{error}</span>}
 
 			<div ref={actionsRef} className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
@@ -418,7 +414,7 @@ export function MessageActions({
 					return (
 						<Fragment key={action.id}>
 							{index === dividerIndex && (
-								<span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden="true" />
+								<span className="mx-2 h-5 w-px shrink-0 bg-gray-200/60" aria-hidden="true" />
 							)}
 							<Tooltip label={tooltip}>
 								<Button

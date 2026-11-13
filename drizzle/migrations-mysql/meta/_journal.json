@@ -71,6 +71,20 @@
       "when": 1793280380891,
       "tag": "0009_calendar_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1793280381891,
+      "tag": "0010_booking_confirmation_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1793280382891,
+      "tag": "0011_message_invite_response",
+      "breakpoints": true
     }
   ]
 }

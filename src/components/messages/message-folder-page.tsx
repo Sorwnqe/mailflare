@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { confirmDestructive, alertDialog } from "@/components/ui/confirm-dialog";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { Archive, ChevronLeft, ChevronRight, ListFilter, Mail, MailOpen, Trash2 } from "@/components/icons";
@@ -202,6 +203,7 @@ function MessageListRowComponent({
 							{(message.threadCount ?? 1) > 1 && (
 								<span className="ml-2 text-xs font-normal text-neutral-500">{message.threadCount}</span>
 							)}
+							<NoteBadge count={message.noteCount} className="ml-2" />
 						</span>
 						<span className={clsx(unread ?"font-medium":"text-neutral-500","shrink-0 text-[11px]")}>
 							<OpenedIndicator count={message.openCount} />
@@ -212,7 +214,6 @@ function MessageListRowComponent({
 						className={`mt-1 block truncate text-sm ${unread ? "font-semibold text-neutral-900" : "text-neutral-700"
 							}`}
 					>
-						<NoteBadge count={message.noteCount} />
 						{message.subject ?? t("list.noSubject")}
 					</span>
 					<span className="mt-0.5 block truncate text-xs leading-5 text-neutral-500">
@@ -512,14 +513,14 @@ export function MessageFolderPage({
 	const permanentDeleteFolder = !config.folderId && supportsPermanentDelete(config.folder) ? config.folder : null;
 	async function emptyFolder() {
 		if (!permanentDeleteFolder || !selectedMailbox?.id) return;
-		if (!window.confirm(getEmptyFolderConfirmText(permanentDeleteFolder, titleTotal, t))) return;
+		if (!await confirmDestructive(getEmptyFolderConfirmText(permanentDeleteFolder, titleTotal, t))) return;
 		setEmptyingFolder(true);
 		try {
 			await emptyMessageFolder(selectedMailbox.id, permanentDeleteFolder);
 			setOffset(0);
 		} catch (error) {
 			console.error(error);
-			window.alert(t("list.emptyFailed", { folder: getPermanentDeleteFolderLabel(permanentDeleteFolder, t) }));
+			void alertDialog(t("list.emptyFailed", { folder: getPermanentDeleteFolderLabel(permanentDeleteFolder, t) }));
 		} finally {
 			setEmptyingFolder(false);
 		}
@@ -544,7 +545,7 @@ export function MessageFolderPage({
 		if (selectedIds.length === 0) return;
 		if (action === "delete") {
 			const ids = expandSelectedIds(selectedIds);
-			if (!window.confirm(getPermanentDeleteConfirmText(ids.length, t))) return;
+			if (!await confirmDestructive(getPermanentDeleteConfirmText(ids.length, t))) return;
 		}
 
 		setPendingBulkAction(true);

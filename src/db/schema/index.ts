@@ -336,6 +336,8 @@ export const messages = sqliteTable(
 		references: text("references_header"),
 		/** Whether the message offers a way to unsubscribe (List-Unsubscribe header or a body link), so lists can show the action without reading the raw MIME. */
 		hasUnsubscribe: bool("has_unsubscribe").notNull().default(false),
+		/** The user's answer to the calendar invitation this message carries: accepted, tentative or declined; null until answered. */
+		inviteResponse: text("invite_response"),
 		spamScore: integer("spam_score"),
 		spamVerdict: text("spam_verdict", { enum: ["inbox", "suspicious", "spam"] }),
 		spamSignals: text("spam_signals"),
@@ -690,6 +692,17 @@ export const bookingEvents = sqliteTable(
 	},
 	(t) => [index("booking_events_user_idx").on(t.userId), uniqueIndex("booking_events_user_slug_idx").on(t.userId, t.slug)],
 );
+
+/**
+ * A booking event's own guest confirmation. Kept out of `booking_events` because the public booking page selects
+ * the whole row, which would fail before the migration; an empty subject or body falls back to the built-in text.
+ */
+export const bookingConfirmationTemplates = sqliteTable("booking_confirmation_templates", {
+	eventId: text("event_id").primaryKey().references(() => bookingEvents.id, { onDelete: "cascade" }),
+	subject: text("subject").notNull().default(""),
+	body: text("body").notNull().default(""),
+	updatedAt: timestamp("updated_at").notNull().$defaultFn(() => new Date()),
+});
 
 export const routingRules = sqliteTable(
 	"routing_rules",
@@ -1066,7 +1079,7 @@ export const appSettings = sqliteTable("app_settings", {
 	iconKey: text("icon_key"),
 	agentEnabled: bool("agent_enabled").notNull().default(true),
 	agentProvider: text("agent_provider", { enum: ["cloudflare", "compatible"] }),
-	agentPreset: text("agent_preset", { enum: ["openai", "openrouter", "groq", "custom"] }),
+	agentPreset: text("agent_preset", { enum: ["openai", "anthropic", "openrouter", "groq", "custom"] }),
 	agentBaseUrl: text("agent_base_url"),
 	agentApiKey: text("agent_api_key"),
 	agentModel: text("agent_model"),
