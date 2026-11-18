@@ -16,6 +16,7 @@ import {
 } from "./worker-utils";
 import { runWithD1Session } from "./src/lib/d1-session-context";
 import { sweepOrphanedRawMail } from "./src/lib/email/raw-sweeper";
+import { pruneExpiredMessageActionUndoClaims } from "./src/lib/messages/actions/claims";
 import { processImportJob, sweepImportJobs } from "./src/lib/import/jobs";
 import { processWebhookRetry, type WebhookRetryMessage } from "./src/lib/email/webhooks";
 import { resolveIncomingMail, forwardMessage } from "./src/lib/email/incoming";
@@ -34,6 +35,7 @@ import { runAgentMaintenance } from "./src/lib/agent/maintenance";
 import { runTrashRetention } from "./src/lib/email/trash-retention";
 import { runDriveTrashRetention } from "./src/lib/drive/retention";
 import { runAccountRetention } from "./src/lib/accounts/deletion";
+import { purgeExpiredAuthRows } from "./src/lib/auth/purge";
 import { runJmapChangeRetention } from "./src/lib/jmap/changes";
 import { runFollowUpReminders } from "./src/lib/follow-ups/service";
 import { runCalendarReminders } from "./src/lib/calendar/reminders";
@@ -81,6 +83,7 @@ export default {
 			const alreadyForwarded = await isForwardedMarkerValid(env, message.headers.get(MAILFLARE_FORWARDED_HEADER));
 			const decision = await resolveIncomingMail(env, message.from, message.to, {
 				subject: message.headers.get("subject"),
+				from: message.headers.get("from"),
 				alreadyForwarded,
 			});
 
@@ -161,7 +164,9 @@ export default {
 		ctx.waitUntil(runFollowUpReminders(env, new Date(controller.scheduledTime)));
 		ctx.waitUntil(runCalendarReminders(env, new Date(controller.scheduledTime)));
 		ctx.waitUntil(sweepImportJobs(env, new Date(controller.scheduledTime)));
+		ctx.waitUntil(pruneExpiredMessageActionUndoClaims(env, new Date(controller.scheduledTime)));
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runAccountRetention(env, new Date(controller.scheduledTime)));
+		if (controller.cron === "0 2 * * *") ctx.waitUntil(purgeExpiredAuthRows(env, new Date(controller.scheduledTime)));
 		// Drive trash is emptied once a day, with the 02:00 UTC cron; the 5-minute cron is for queue-like upkeep.
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runDriveTrashRetention(env, new Date(controller.scheduledTime)));
 		if (controller.cron === "0 2 * * *") ctx.waitUntil(runJmapChangeRetention(env, new Date(controller.scheduledTime)));
