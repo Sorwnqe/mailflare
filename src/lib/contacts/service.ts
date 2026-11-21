@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
+import { selectInBatches } from "@/lib/db-params";
 import { contacts, routingRules } from "@/db/schema";
 import { getFirstEmailAddressEntry, normalizeEmailAddress } from "@/lib/email/address";
 import type { BlockContactInput, ContactCard, ContactDisplayName, ContactInput, MessageContactNames } from "@/lib/contacts/types";
@@ -131,10 +132,10 @@ export async function getContactDisplayNameMap(env: CloudflareEnv, userId: strin
 	if (emails.length === 0) return new Map<string, ContactDisplayName>();
 
 	const db = getDb(env);
-	const rows = await db
+	const rows = await selectInBatches(emails, (batch) => db
 		.select()
 		.from(contacts)
-		.where(and(eq(contacts.userId, userId), inArray(contacts.email, emails)));
+		.where(and(eq(contacts.userId, userId), inArray(contacts.email, batch))));
 
 	const entries = rows
 		.filter((contact) => !!contact.displayName)
@@ -158,15 +159,20 @@ export async function getContactAvatarMap(env: CloudflareEnv, userId: string, ad
 	return new Map(rows.map((contact) => [contact.email, !!contact.avatarKey]));
 }
 
+const CONTACT_EMAIL_CHUNK = 90;
+
 export async function getContactCardMap(env: CloudflareEnv, userId: string, addresses: string[]) {
 	const emails = Array.from(new Set(addresses.map(normalizeEmailAddress).filter(Boolean)));
 	if (emails.length === 0) return new Map<string, ContactCard>();
 
 	const db = getDb(env);
-	const rows = await db
+	// userId takes one bound parameter, so keep each email chunk under D1's limit of 100.
+	const chunks: string[][] = [];
+	for (let offset = 0; offset < emails.length; offset += CONTACT_EMAIL_CHUNK) chunks.push(emails.slice(offset, offset + CONTACT_EMAIL_CHUNK));
+	const rows = (await Promise.all(chunks.map((chunk) => db
 		.select({ email: contacts.email, displayName: contacts.displayName, source: contacts.source, avatarKey: contacts.avatarKey })
 		.from(contacts)
-		.where(and(eq(contacts.userId, userId), inArray(contacts.email, emails)));
+		.where(and(eq(contacts.userId, userId), inArray(contacts.email, chunk)))))).flat();
 
 	return new Map(rows.map((contact) => [contact.email, {
 		displayName: contact.displayName,
@@ -220,6 +226,7 @@ export async function blockContact(env: CloudflareEnv, input: BlockContactInput)
 		}
 	}
 
+	const blockRuleId = `block:${input.mailboxId}:${email}`;
 	const [existingRule] = await db
 		.select()
 		.from(routingRules)
@@ -234,18 +241,17 @@ export async function blockContact(env: CloudflareEnv, input: BlockContactInput)
 		)
 		.limit(1);
 	if (!existingRule) {
-		await db.insert(routingRules).values({
-			id: `block:${input.mailboxId}:${email}`,
-			userId: input.userId,
-			domainId: input.domainId,
-			pattern: email,
-			matchField: "email",
-			matchOperator: "exact",
+		const match = {
+			matchField: "email" as const,
+			matchOperator: "exact" as const,
 			matchValue: email,
-			mailboxId: input.mailboxId,
-			action: "trash",
-			priority: 100,
-		});
+			action: "trash" as const,
+		};
+		// The generated rule may have been edited or disabled since; restore what makes it block, and leave who owns it alone.
+		await db
+			.insert(routingRules)
+			.values({ id: blockRuleId, userId: input.userId, domainId: input.domainId, pattern: email, mailboxId: input.mailboxId, priority: 100, ...match })
+			.onConflictDoUpdate({ target: routingRules.id, set: { ...match, enabled: true } });
 	}
 
 	return { email, blocked: true };
