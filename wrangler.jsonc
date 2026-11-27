@@ -72,7 +72,7 @@
 	],
 	"observability": {
 		"enabled": true,
-		"traces": { "enabled": true },
+		"traces": { "enabled": false },
 	},
 	"upload_source_maps": true,
 	"routes": [

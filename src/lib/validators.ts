@@ -66,6 +66,7 @@ const hostnameField = z
 
 export const firstRunRegisterSchema = z
 	.object({
+		name: z.string().trim().max(100).optional(),
 		domain: hostnameField,
 		enableSending: z.boolean().optional(),
 		replaceMxRecords: z.boolean().optional(),
@@ -368,6 +369,11 @@ export const folderSchema = z.object({
 	mailboxId: z.string().min(1),
 	name: z.string().trim().min(1).max(80),
 	color: z.enum(FOLDER_COLOR_VALUES).default(DEFAULT_FOLDER_COLOR),
+});
+
+export const folderUpdateSchema = folderSchema.extend({
+	id: z.string().min(1),
+	color: z.enum(FOLDER_COLOR_VALUES),
 });
 
 /** Proof of identity for changing where password-reset or forwarded mail goes. */
